@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Poli</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        input, button { padding: 8px; margin: 5px 0; width: 100%; }
+        .form-container { max-width: 400px; margin-top: 30px; }
+        .btn-submit { background-color: #28a745; color: white; border: none; cursor: pointer; }
+        .btn-submit:hover { background-color: #218838; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; cursor: pointer; }
+        .btn-delete:hover { background-color: #c82333; }
+        .nav-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            width: auto; /* agar tombol tidak penuh lebar */
+        }
+        .nav-button:hover {
+            background-color: #0069d9;
+        }
+    </style>
+</head>
+<body>
+<h2>Daftar Poli</h2>
+
+<table id="poliTable">
+    <tr>
+        <th>ID Poli</th>
+        <th>Nama Poli</th>
+        <th>Aksi</th>
+    </tr>
+</table>
+
+<div class="form-container">
+    <h3 id="form-title">Tambah Poli</h3>
+    <input type="text" id="nama_poli" placeholder="Nama Poli">
+    <button class="btn-submit" onclick="tambahPoli()">Kirim</button>
+</div>
+<div style="margin-top: 30px;">
+    <button class="nav-button" style="display: block; width: 200px; margin-bottom: 10px;" onclick="window.location.href='staff.html'">Ke Halaman Staff</button>
+    <button class="nav-button" style="display: block; width: 200px; margin-bottom: 10px;" onclick="window.location.href='jadwal.html'">Ke Halaman Jadwal</button>
+    <button class="nav-button" style="display: block; width: 200px;" onclick="window.location.href='home.html'">Ke Halaman Home</button>
+</div>
+
+
+<script>
+    const API_URL = 'http://172.16.48.242:8000/api/poli';
+    let poliEditId = null;
+
+    window.onload = function () {
+        fetchPoli();
+    };
+
+    function fetchPoli() {
+        fetch(API_URL)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById("poliTable");
+                table.innerHTML = `
+                    <tr>
+                        <th>ID Poli</th>
+                        <th>Nama Poli</th>
+                        <th>Aksi</th>
+                    </tr>
+                `;
+                data.forEach(poli => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${poli.id_poli}</td>
+                        <td>${poli.nama_poli}</td>
+                        <td>
+                            <button onclick="isiFormEdit(${poli.id_poli}, '${poli.nama_poli}')">Edit</button>
+                            <button class="btn-delete" onclick="hapusPoli(${poli.id_poli})">Hapus</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Gagal mengambil data poli:', error));
+    }
+
+    function tambahPoli() {
+        const nama = document.getElementById('nama_poli').value.trim();
+        if (!nama) {
+            alert('Nama Poli tidak boleh kosong!');
+            return;
+        }
+
+        const data = { nama_poli: nama };
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Poli berhasil ditambahkan');
+                resetForm();
+                fetchPoli();
+            } else {
+                alert('Gagal menambahkan poli');
+            }
+        })
+        .catch(error => console.error('Gagal:', error));
+    }
+
+    function isiFormEdit(id, nama) {
+        document.getElementById('nama_poli').value = nama;
+        poliEditId = id;
+
+        document.getElementById('form-title').innerText = 'Edit Poli';
+        const tombol = document.querySelector('.btn-submit');
+        tombol.innerText = 'Update Poli';
+        tombol.onclick = updatePoli;
+    }
+
+    function updatePoli() {
+        const nama = document.getElementById('nama_poli').value.trim();
+        if (!nama) {
+            alert('Nama Poli tidak boleh kosong!');
+            return;
+        }
+
+        const data = { 
+            id_poli: poliEditId,
+            nama_poli: nama 
+        };
+
+        fetch(`${API_URL}/${poliEditId}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Poli berhasil diperbarui');
+            resetForm();
+            fetchPoli();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + (error.message || JSON.stringify(error)));
+        });
+    }
+
+    function hapusPoli(id) {
+        if (!confirm('Apakah Anda yakin ingin menghapus poli ini?')) return;
+
+        fetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Poli berhasil dihapus');
+                fetchPoli();
+            } else {
+                alert('Gagal menghapus poli');
+            }
+        })
+        .catch(error => console.error('Error saat hapus:', error));
+    }
+
+    function resetForm() {
+        document.getElementById('nama_poli').value = '';
+        poliEditId = null;
+        document.getElementById('form-title').innerText = 'Tambah Poli';
+        const tombol = document.querySelector('.btn-submit');
+        tombol.innerText = 'Kirim';
+        tombol.onclick = tambahPoli;
+    }
+</script>
+
+</body>
+</html>

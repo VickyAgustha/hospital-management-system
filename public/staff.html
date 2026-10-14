@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Staff</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        input, button { padding: 8px; margin: 5px 0; width: 100%; }
+        .form-container { max-width: 400px; margin-top: 30px; }
+        .btn-submit { background-color: #28a745; color: white; border: none; cursor: pointer; }
+        .btn-submit:hover { background-color: #218838; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; cursor: pointer; }
+        .btn-delete:hover { background-color: #c82333; }
+
+        .nav-buttons {
+            margin-top: 30px;
+            max-width: 400px;
+        }
+
+        .nav-buttons a {
+            display: block;
+            text-align: center;
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .nav-buttons a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Daftar Staff</h2>
+
+<table id="staffTable">
+    <tr>
+        <th>ID Staff</th>
+        <th>Nama Staff</th>
+        <th>Jabatan</th>
+        <th>Nomor Kontak</th>
+        <th>Email</th>
+        <th>Aksi</th>
+    </tr>
+</table>
+
+<div class="form-container">
+    <h3 id="form-title">Tambah Staff</h3>
+    <input type="text" id="nama_staff" placeholder="Nama Staff">
+    <input type="text" id="jabatan" placeholder="Jabatan">
+    <input type="text" id="nomor_kontak" placeholder="Nomor Kontak">
+    <input type="email" id="email" placeholder="Email">
+    <button class="btn-submit" onclick="tambahStaff()">Kirim</button>
+</div>
+
+<div class="nav-buttons">
+    <a href="home.html">Home</a>
+    <a href="jadwal.html">Jadwal</a>
+    <a href="poli.html">Poli</a>
+</div>
+
+<script>
+    const API_URL = 'http://172.16.48.242:8000/api/staff';
+    let staffEditId = null;
+
+    window.onload = function () {
+        fetchStaff();
+    };
+    function fetchStaff() {
+        fetch(API_URL)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById("staffTable");
+                table.innerHTML = `
+                    <tr>
+                        <th>ID Staff</th>
+                        <th>Nama Staff</th>
+                        <th>Jabatan</th>
+                        <th>Nomor Kontak</th>
+                        <th>Email</th>
+                        <th>Aksi</th>
+                    </tr>
+                `;
+                data.forEach(staff => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${staff.id_staff}</td>
+                        <td>${staff.nama_staff}</td>
+                        <td>${staff.jabatan}</td>
+                        <td>${staff.nomor_kontak}</td>
+                        <td>${staff.email}</td>
+                        <td>
+                            <button onclick="isiFormEdit(${staff.id_staff}, '${staff.nama_staff}', '${staff.jabatan}', '${staff.nomor_kontak}', '${staff.email}')">Edit</button>
+                            <button class="btn-delete" onclick="hapusStaff(${staff.id_staff})">Hapus</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Gagal mengambil data staff:', error));
+    }
+
+    function tambahStaff() {
+        const nama = document.getElementById('nama_staff').value.trim();
+        const jabatan = document.getElementById('jabatan').value.trim();
+        const kontak = document.getElementById('nomor_kontak').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if (!nama || !jabatan || !kontak || !email) {
+            alert('Semua kolom harus diisi!');
+            return;
+        }
+
+        const data = {
+            nama_staff: nama,
+            jabatan: jabatan,
+            nomor_kontak: kontak,
+            email: email
+        };
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Staff berhasil ditambahkan');
+                resetForm();
+                fetchStaff();
+            } else {
+                alert('Gagal menambahkan staff');
+            }
+        })
+        .catch(error => console.error('Gagal:', error));
+    }
+
+    function isiFormEdit(id, nama, jabatan, kontak, email) {
+        document.getElementById('nama_staff').value = nama;
+        document.getElementById('jabatan').value = jabatan;
+        document.getElementById('nomor_kontak').value = kontak;
+        document.getElementById('email').value = email;
+        staffEditId = id;
+
+        document.getElementById('form-title').innerText = 'Edit Staff';
+        const tombol = document.querySelector('.btn-submit');
+        tombol.innerText = 'Update Staff';
+        tombol.onclick = updateStaff;
+    }
+
+    function updateStaff() {
+        const nama = document.getElementById('nama_staff').value.trim();
+        const jabatan = document.getElementById('jabatan').value.trim();
+        const kontak = document.getElementById('nomor_kontak').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if (!nama || !jabatan || !kontak || !email) {
+            alert('Semua kolom harus diisi!');
+            return;
+        }
+
+        const data = {
+            id_staff: staffEditId,
+            nama_staff: nama,
+            jabatan: jabatan,
+            nomor_kontak: kontak,
+            email: email
+        };
+
+        fetch(`${API_URL}/${staffEditId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            alert('Staff berhasil diperbarui');
+            resetForm();
+            fetchStaff();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + (error.message || JSON.stringify(error)));
+        });
+    }
+
+    function hapusStaff(id) {
+        if (!confirm('Apakah Anda yakin ingin menghapus staff ini?')) return;
+
+        fetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Staff berhasil dihapus');
+                fetchStaff();
+            } else {
+                alert('Gagal menghapus staff');
+            }
+        })
+        .catch(error => console.error('Error saat hapus:', error));
+    }
+
+    function resetForm() {
+        document.getElementById('nama_staff').value = '';
+        document.getElementById('jabatan').value = '';
+        document.getElementById('nomor_kontak').value = '';
+        document.getElementById('email').value = '';
+        staffEditId = null;
+        document.getElementById('form-title').innerText = 'Tambah Staff';
+        const tombol = document.querySelector('.btn-submit');
+        tombol.innerText = 'Kirim';
+        tombol.onclick = tambahStaff;
+    }
+</script>
+
+</body>
+</html>

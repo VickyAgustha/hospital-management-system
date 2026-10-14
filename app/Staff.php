@@ -1,0 +1,16 @@
+<?php
+namespace App;
+use Illuminate\Database\Eloquent\Model;
+
+class Staff extends Model
+{
+    protected $table = 'staff';
+    protected $primaryKey = 'id_staff';
+    public $timestamps = false;
+    protected $fillable = [
+        'nama_staff',
+        'jabatan',
+        'nomor_kontak',
+        'email'
+    ];
+  }
